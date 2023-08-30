@@ -200,6 +200,7 @@
     </ClInclude>
     <ClInclude Include="injection.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="rep.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
@@ -242,6 +243,7 @@
     </ClCompile>
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="rep.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

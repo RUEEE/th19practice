@@ -4,6 +4,9 @@
 #include <string>
 #include "imgui\imgui.h"
 
+#define VALUED(x) (*(DWORD*)(x))
+#define VALUEF(x) (*(float*)(x))
+
 void LogError(std::string msg);
 void LogInfo(std::string msg);
 

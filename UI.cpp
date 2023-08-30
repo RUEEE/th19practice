@@ -3,6 +3,8 @@
 #include "Utils.h"
 #include <windows.h>
 #include "injection.h"
+#include "rep.h"
+
 
 #include "imgui\imgui.h"
 #include "imgui\imgui_impl_dx9.h"
@@ -21,11 +23,13 @@
 #include <format>
 #include <fstream>
 
-#define VALUED(x) (*(DWORD*)(x))
-#define VALUEF(x) (*(float*)(x))
 
 bool g_is_change_card = true;
 int g_cards[5] = { 0,2,4,6,8 };
+
+int g_BGM = 0;
+int g_BG = 0;
+
 void __fastcall SetStoryModeCard(int thiz)
 {
     if (!g_is_change_card)
@@ -82,12 +86,47 @@ void ShowHP()
     }
 }
 
-void Practice()
+std::vector<std::vector<int>> hit_attack= { 
+{300,300,400,200                     },
+{300,300,500,400                     },
+{300,300,500,300,600                 },
+{300,350,500,300,500,300             },
+{300,300,150,300,300,300,100         },
+{300,200,200,200,200,400,200,300,100 } 
+};
+
+
+extern bool g_rep_UI;
+
+void PracticeUI()
 {
     {
-        ImGui::SetNextWindowSizeConstraints(ImVec2(380.0f, 268.0f), ImVec2(640.0f, 480.0f));
-        ImGui::Begin("boss");
+        static bool is_show_HP = true;
+        if (is_show_HP)
+            ShowHP();
+        ImGui::SetNextWindowSizeConstraints(ImVec2(380.0f, 310.0f), ImVec2(640.0f, 480.0f));
+
+        //[[005AE4E0]+34]+8
+        int hit = 0;
+        int hit_remain = 0;
+        if (VALUED(0x005AE4E0) && VALUED(VALUED(0x005AE4E0) + 0x34))
+        {
+            hit=VALUED(VALUED(VALUED(0x005AE4E0) + 0x34) + 8);
+            int cur_stage = VALUED(0x006082C0);
+            auto &h=hit_attack[cur_stage - 1];
+            int ch= VALUED(VALUED(VALUED(0x005AE4E0) + 0x34) + 4);
+            if (ch >= 0 && ch < h.size()){
+                hit_remain = h[ch]-hit;
+            }
+        }
+        int hh = 0;
+        if (VALUED(0x005AE474))
+        {
+            hh=VALUED(VALUED(0x005AE474) + 0x22BC);
+        }
+        ImGui::Begin(std::format("hit: {:>4} , remain: {:>4} , imm: {:>4} ###boss",hit,hit_remain,hh).c_str());
         static int x = 0;
+        
         ImGui::SliderInt("###boss attack", &x, 0, 17, "boss attack %d");
         ImGui::SameLine();
         if (ImGui::Button("attack") || (ImGui::IsKeyDown(VK_BACK) && !ImGui::IsWindowHovered()))
@@ -218,10 +257,7 @@ void Practice()
                 }
             }
             ImGui::SameLine();
-            static bool is_show_HP = true;
             ImGui::Checkbox("show HP", &is_show_HP);
-            if (is_show_HP)
-                ShowHP();
         }
         
         //kill player
@@ -293,6 +329,44 @@ void Practice()
                     sub_532E70(VALUED(0x005AE4B0), 1);
                 }
             }
+            ImGui::SameLine();
+            ImGui::Checkbox("rep ui", &g_rep_UI);
+        }
+        {
+            static bool forceBGM = false;
+            static bool forceBG = false;
+            bool is_changed_value = false;
+
+            is_changed_value = is_changed_value || ImGui::Checkbox("BGM###forceBGM", &forceBGM);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(140.0f);
+            is_changed_value = is_changed_value || ImGui::SliderInt("###BGM", &g_BGM, 0, 18);
+            
+            is_changed_value = is_changed_value || ImGui::Checkbox("BG ###forceBG", &forceBG);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(140.0f);
+            is_changed_value = is_changed_value || ImGui::SliderInt("##BG", &g_BG, 0, 16);
+            
+            if (is_changed_value)
+            {
+                if (forceBGM)
+                {
+                    Address<BYTE>(0x5065F4).SetValue(0xB8);
+                    Address<DWORD>(0x5065F5).SetValue(g_BGM);
+                }else{
+                    Address<DWORD>(0x5065F4).SetValue(0xF045F7E8);
+                    Address<BYTE>(0x5065F5).SetValue(0xFF);
+                }
+                if (forceBG)
+                {
+                    Address<BYTE>(0x505B90).SetValue(0xB9);
+                    Address<DWORD>(0x505B91).SetValue(g_BG);
+                    Address<BYTE>(0x505B95).SetValue(0x90);
+                }else{
+                    Address<DWORD>(0x505B90).SetValue(0x2B90888B);
+                    Address<WORD>(0x505B94).SetValue(0x005A);
+                }
+            }
         }
         
         ImGui::End();
@@ -303,6 +377,7 @@ void Practice()
 
 void SetUI(IDirect3DDevice9* device)
 {
-    Practice();
+    PracticeUI();
+    RepUI();
     return;
 }

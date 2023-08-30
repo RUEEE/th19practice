@@ -356,12 +356,13 @@ void unHook()
         SetWindowLongW(g_wnd_hwnd, GWL_WNDPROC, (LONG)g_oldWndProc);
     }
 }
-
+#include "rep.h"
 
 //#define msg(x)  MessageBoxA(NULL, x, x, MB_OK);
 #define msg(x)
 void InjectAll()
 {
+    Injection_Rep();
     Hook((LPVOID)0x53D2D4, 10, SetStoryModeCard_53D2D4_Wrap);
 }
 
