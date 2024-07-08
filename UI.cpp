@@ -3,7 +3,6 @@
 #include "Utils.h"
 #include <windows.h>
 #include "injection.h"
-#include "rep.h"
 
 
 #include "imgui\imgui.h"
@@ -34,7 +33,7 @@ void __fastcall SetStoryModeCard(int thiz)
 {
     if (!g_is_change_card)
         return;
-    int stage = *(DWORD*)0x006082C0;
+    int stage = *(DWORD*)addr_stage_count;
     if (stage >= 1 && stage <= 5)
     {
         *(DWORD*)(thiz + 0x18) = g_cards[stage-1];
@@ -59,7 +58,7 @@ void ShowHP()
 {
     auto clientSz = ImGui::GetMainViewport()->Size;
     auto p = ImGui::GetOverlayDrawList();
-    DWORD pEnmbase[] = { 0x005AE478,0x005AE4B4 };
+    DWORD pEnmbase[] = { addr_enm_list_1p,addr_enm_list_2p };
     bool is_1p[] = { true,false };
     for (int i = 0; i < 2; i++)
     {
@@ -109,20 +108,20 @@ void PracticeUI()
         //[[005AE4E0]+34]+8
         int hit = 0;
         int hit_remain = 0;
-        if (VALUED(0x005AE4E0) && VALUED(VALUED(0x005AE4E0) + 0x34))
+        if (VALUED(addr_hits_ps_count_base_1p) && VALUED(VALUED(addr_hits_ps_count_base_1p) + 0x34))
         {
-            hit=VALUED(VALUED(VALUED(0x005AE4E0) + 0x34) + 8);
-            int cur_stage = VALUED(0x006082C0);
+            hit=VALUED(VALUED(VALUED(addr_hits_ps_count_base_1p) + 0x34) + 8);
+            int cur_stage = VALUED(addr_stage_count);
             auto &h=hit_attack[cur_stage - 1];
-            int ch= VALUED(VALUED(VALUED(0x005AE4E0) + 0x34) + 4);
+            int ch= VALUED(VALUED(VALUED(addr_hits_ps_count_base_1p) + 0x34) + 4);
             if (ch >= 0 && ch < h.size()){
                 hit_remain = h[ch]-hit;
             }
         }
         int hh = 0;
-        if (VALUED(0x005AE474))
+        if (VALUED(addr_ppl_1p))
         {
-            hh=VALUED(VALUED(0x005AE474) + 0x22BC);
+            hh=VALUED(VALUED(addr_ppl_1p) + 0x22BC);
         }
         ImGui::Begin(std::format("hit: {:>4} , remain: {:>4} , imm: {:>4} ###boss",hit,hit_remain,hh).c_str());
         static int x = 0;
@@ -135,7 +134,7 @@ void PracticeUI()
             //sb_4FC7D0_Boss_BossAttack = (decltype(sb_4FC7D0_Boss_BossAttack))(0x4FC7D0);
             //sb_4FC7D0_Boss_BossAttack(*(DWORD*)(0x5AE4E4), x);
 
-            auto thiz = *(DWORD*)(0x5AE4E4);
+            auto thiz = *(DWORD*)(addr_attack_vtbl_2p);
             if (thiz != 0)
             {
                 auto v8 = *(DWORD**)(thiz + 0x18);
@@ -163,7 +162,6 @@ void PracticeUI()
         if (ImGui::InputTextWithHint("###cards", "cards needed: %d %d %d %d %d", buf, sizeof(buf),ImGuiInputTextFlags_::ImGuiInputTextFlags_CallbackCharFilter, charfilter,0)){
             if (sscanf_s(buf, "%d%d%d%d%d", g_cards, g_cards + 1, g_cards + 2, g_cards + 3, g_cards + 4)!=5){
                 is_ok = false;
-                
             }else{
                 is_ok = true;
                 for (int i = 0; i < 5; i++) {
@@ -188,26 +186,26 @@ void PracticeUI()
         static int diff = 7;
         if (ImGui::SliderInt(" difficulty rank", &diff, 0, 7, "diff %d"))
         {
-            *(DWORD*)(0x607A90) = diff;
+            *(DWORD*)(addr_diff_rank) = diff;
         }
 
         static int lv[4] = { 7,7,7,7 };
         if (ImGui::SliderInt4(" LV setting", lv, 0, 7, "Lvs"))
         {
-            if (Address<DWORD>(0x005AE488).GetValue())
-                (Address<DWORD>(0x005AE488) + 0xCC + 0x2C + 0x34).SetValue(lv[0]);
-            if (Address<DWORD>(0x005AE4C4).GetValue())
-                (Address<DWORD>(0x005AE4C4) + 0xCC + 0x2C + 0x34).SetValue(lv[1]);
-            if (Address<DWORD>(0x005AE488).GetValue())
-                (Address<DWORD>(0x005AE488) + 0xCC + 0x2C + 0x38).SetValue(lv[2]);
-            if (Address<DWORD>(0x005AE4C4).GetValue())
-                (Address<DWORD>(0x005AE4C4) + 0xCC + 0x2C + 0x38).SetValue(lv[3]);
+            if (Address<DWORD>(addr_att_lv_base_1p).GetValue())
+                addr_ex_att_lv_1p.SetValue(lv[0]);
+            if (Address<DWORD>(addr_att_lv_base_2p).GetValue())
+                addr_ex_att_lv_2p.SetValue(lv[1]);
+            if (Address<DWORD>(addr_att_lv_base_1p).GetValue())
+                addr_boss_att_lv_1p.SetValue(lv[2]);
+            if (Address<DWORD>(addr_att_lv_base_2p).GetValue())
+                addr_boss_att_lv_1p.SetValue(lv[3]);
         }
         static int power[2];
         if (ImGui::SliderInt2(" set power", power, 0, 2500, "%d"))
         {
-            *(DWORD*)(0x00607930) = power[0];
-            *(DWORD*)(0x006079F0) = power[1];
+            *(DWORD*)(addr_C_1p) = power[0];
+            *(DWORD*)(addr_C_2p) = power[1];
         }
 
         //checkboxes
@@ -215,25 +213,25 @@ void PracticeUI()
             static bool lock_lv = false;
             ImGui::Checkbox("lock LV", &lock_lv);
             if (lock_lv) {
-                if (Address<DWORD>(0x005AE488).GetValue())
-                    (Address<DWORD>(0x005AE488) + 0xCC + 0x2C + 0x34).SetValue(lv[0]);
-                if (Address<DWORD>(0x005AE4C4).GetValue())
-                    (Address<DWORD>(0x005AE4C4) + 0xCC + 0x2C + 0x34).SetValue(lv[1]);
-                if (Address<DWORD>(0x005AE488).GetValue())
-                    (Address<DWORD>(0x005AE488) + 0xCC + 0x2C + 0x38).SetValue(lv[2]);
-                if (Address<DWORD>(0x005AE4C4).GetValue())
-                    (Address<DWORD>(0x005AE4C4) + 0xCC + 0x2C + 0x38).SetValue(lv[3]);
+                if (Address<DWORD>(addr_att_lv_base_1p).GetValue())
+                    addr_ex_att_lv_1p.SetValue(lv[0]);
+                if (Address<DWORD>(addr_att_lv_base_2p).GetValue())
+                    addr_ex_att_lv_2p.SetValue(lv[1]);
+                if (Address<DWORD>(addr_att_lv_base_1p).GetValue())
+                    addr_boss_att_lv_1p.SetValue(lv[2]);
+                if (Address<DWORD>(addr_att_lv_base_2p).GetValue())
+                    addr_boss_att_lv_1p.SetValue(lv[3]);
             }
             static bool lock_power1 = false;
             static bool lock_power2 = false;
             ImGui::SameLine();
             ImGui::Checkbox("lock 1P power", &lock_power1);
             if (lock_power1)
-                *(DWORD*)(0x00607930) = power[0];
+                *(DWORD*)(addr_C_1p) = power[0];
             ImGui::SameLine();
             ImGui::Checkbox("lock 2P power", &lock_power2);
             if (lock_power2)
-                *(DWORD*)(0x006079F0) = power[1];
+                *(DWORD*)(addr_C_2p) = power[1];
 
             ImGui::Checkbox("change card", &g_is_change_card);
             ImGui::SameLine();
@@ -244,14 +242,14 @@ void PracticeUI()
                 if (is_invincible)
                 {
                     for (int i = 0; i < 7; i++) {
-                        auto addr = Address<BYTE>(0x00530ACC + i);
+                        auto addr = Address<BYTE>(addr_player_die_state4 + i);
                         original_code[i] = addr.GetValue();
                         addr.SetValue(0x90);
                     }
                 }
                 else {
                     for (int i = 0; i < 7; i++) {
-                        auto addr = Address<BYTE>(0x00530ACC + i);
+                        auto addr = Address<BYTE>(addr_player_die_state4 + i);
                         addr.SetValue(original_code[i]);
                     }
                 }
@@ -263,26 +261,26 @@ void PracticeUI()
         //kill player
         {
             if (ImGui::Button("kill 1P")) {
-                *(DWORD*)(0x00607960) = 0;
-                auto p1 = *(DWORD*)(0x005AE474);
+                *(DWORD*)(addr_life_count_1p) = 0;
+                auto p1 = *(DWORD*)(addr_ppl_1p);
                 if (p1)
                     *(DWORD*)(p1 + 0x10) = 4;
             }
             ImGui::SameLine();
             if (ImGui::Button("kill 2P")) {
-                *(DWORD*)(0x00607A20) = 0;
-                auto p2 = *(DWORD*)(0x005AE4B0);
+                *(DWORD*)(addr_life_count_2p) = 0;
+                auto p2 = *(DWORD*)(addr_ppl_2p);
                 if (p2)
                     *(DWORD*)(p2 + 0x10) = 4;
             }
             ImGui::SameLine();
             if (ImGui::Button("kill 2P & 1P")) {
-                *(DWORD*)(0x00607A20) = 0;
-                *(DWORD*)(0x00607960) = 0;
-                auto p2 = *(DWORD*)(0x005AE4B0);
+                *(DWORD*)(addr_life_count_1p) = 0;
+                *(DWORD*)(addr_life_count_2p) = 0;
+                auto p2 = *(DWORD*)(addr_ppl_2p);
                 if (p2)
                     *(DWORD*)(p2 + 0x10) = 4;
-                auto p1 = *(DWORD*)(0x005AE474);
+                auto p1 = *(DWORD*)(addr_ppl_1p);
                 if (p1)
                     *(DWORD*)(p1 + 0x10) = 4;
             }
@@ -305,32 +303,30 @@ void PracticeUI()
                 }
             }
 
-            int(__thiscall* sb_4CFAE0_init_card)(DWORD thiz, int a2, int cardID, int a4);
-            sb_4CFAE0_init_card = (decltype(sb_4CFAE0_init_card))(0x4CFAE0);
+            int(__thiscall* sb_4CFAE0_init_card)(DWORD thiz, int a2, int cardID);
+            sb_4CFAE0_init_card = (decltype(sb_4CFAE0_init_card))(addr_sb_4CFAE0_add_card);
             int(__thiscall* sub_532E70)(DWORD pPlayer, int a2);
-            sub_532E70 = (decltype(sub_532E70))0x532E70;
+            sub_532E70 = (decltype(sub_532E70))addr_sb_532E70_prob_InitPlayerCard;
             int(__thiscall* sb_4CEFC0_showCard_leftBottom)(DWORD pAbility);
-            sb_4CEFC0_showCard_leftBottom = (decltype(sb_4CEFC0_showCard_leftBottom))0x4CEFC0;
+            sb_4CEFC0_showCard_leftBottom = (decltype(sb_4CEFC0_showCard_leftBottom))addr_sb_4CEFC0_showCard_leftBottom;
 
             if (ImGui::Button("get card1")) {
-                if (VALUED(0x005AE474)){
+                if (VALUED(addr_ppl_1p)){
                     for(auto card_id :cardIds)
-                        int pCard = sb_4CFAE0_init_card(VALUED(0x005AE490), card_id, 0, 1);
-                    sb_4CEFC0_showCard_leftBottom(VALUED(0x005AE490));
-                    sub_532E70(VALUED(0x005AE474), 1);
+                        int pCard = sb_4CFAE0_init_card(VALUED(addr_card_base_1p), card_id, 0);
+                    sb_4CEFC0_showCard_leftBottom(VALUED(addr_card_base_1p));
+                    sub_532E70(VALUED(addr_ppl_1p), 1);
                 }
             }
             ImGui::SameLine();
             if (ImGui::Button("get card2")) {
-                if (VALUED(0x005AE474)) {
+                if (VALUED(addr_ppl_2p)) {
                     for (auto card_id : cardIds)
-                        int pCard = sb_4CFAE0_init_card(VALUED(0x005AE4CC), card_id, 0, 1);
-                    sb_4CEFC0_showCard_leftBottom(VALUED(0x005AE4CC));
-                    sub_532E70(VALUED(0x005AE4B0), 1);
+                        int pCard = sb_4CFAE0_init_card(VALUED(addr_card_base_2p), card_id, 0);
+                    sb_4CEFC0_showCard_leftBottom(VALUED(addr_card_base_2p));
+                    sub_532E70(VALUED(addr_ppl_2p), 1);
                 }
             }
-            ImGui::SameLine();
-            ImGui::Checkbox("rep ui", &g_rep_UI);
         }
         {
             static bool forceBGM = false;
@@ -351,20 +347,20 @@ void PracticeUI()
             {
                 if (forceBGM)
                 {
-                    Address<BYTE>(0x5065F4).SetValue(0xB8);
-                    Address<DWORD>(0x5065F5).SetValue(g_BGM);
+                    Address<BYTE>(addr_bgm_set).SetValue(0xB8);
+                    Address<DWORD>((addr_bgm_set+1)).SetValue(g_BGM);
                 }else{
-                    Address<DWORD>(0x5065F4).SetValue(0xF045F7E8);
-                    Address<BYTE>(0x5065F5).SetValue(0xFF);
+                    Address<DWORD>(addr_bgm_set).SetValue(code_bgm_set_orig_1);
+                    Address<BYTE>((addr_bgm_set + 1)).SetValue(code_bgm_set_orig_2);
                 }
                 if (forceBG)
                 {
-                    Address<BYTE>(0x505B90).SetValue(0xB9);
-                    Address<DWORD>(0x505B91).SetValue(g_BG);
-                    Address<BYTE>(0x505B95).SetValue(0x90);
+                    Address<BYTE>(addr_bg_set).SetValue(0xB9);
+                    Address<DWORD>((addr_bg_set+1)).SetValue(g_BG);
+                    Address<BYTE>((addr_bg_set+5)).SetValue(0x90);
                 }else{
-                    Address<DWORD>(0x505B90).SetValue(0x2B90888B);
-                    Address<WORD>(0x505B94).SetValue(0x005A);
+                    Address<DWORD>(addr_bg_set).SetValue(code_bg_set_orig_1);
+                    Address<WORD>((addr_bg_set+4)).SetValue(code_bg_set_orig_2);
                 }
             }
         }
@@ -378,6 +374,5 @@ void PracticeUI()
 void SetUI(IDirect3DDevice9* device)
 {
     PracticeUI();
-    RepUI();
     return;
 }
